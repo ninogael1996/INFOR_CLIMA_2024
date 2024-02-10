@@ -1,0 +1,497 @@
+---
+title: "UNIVERSIDAD CENTRAL DEL ECUADOR Carrera de Ingeniería Ambiental" 
+subtitle: "Modelo de Predicción Estadístico para Temperatura y Precipitación con el algoritmo Random Forest en lenguaje R"
+author: "Naim Aguilar - Jhonatan Cruz - Javier Quishpe -  Susana Arciniegas Ortega"
+date: "2024/02/02"
+output:
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+    code_download: TRUE
+    theme: united
+---
+```{r setup, include=FALSE}
+
+library(lubridate)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(caret)
+library(randomForest)
+library(zoo)
+
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+# TEMPERATURA
+
+## 1. Instalación y carga de librerías.
+
+El primer paso es la instalación de las librerías utilizando el comando install.packages() esto es fundamental para el desarrollo de nuestro código. Ya que se necesitan algunos paquetes como caret, randomforest, lubridate, ggplot2. Sin estas librerías el codigo no va a correr. 
+
+A continuación las librerías que vamos a utilizar en el código.
+
+install.packages("lubridate")
+
+install.packages("dplR")
+
+install.packages("tidyr")
+
+install.packages("ggplot2")
+
+install.packages("caret")
+
+install.packages("randomforest")
+
+install.packages("zoo")
+
+Ahora tenemos que llamar a los paquetes instalados con el comando library(), y dentro de los parentesis escribir los paquetes que solicitamos anteriormente.
+
+library(lubridate)
+
+library(dplyr)
+
+library(tidyr)
+
+library(ggplot2)
+
+library(caret)
+
+library(randomForest)
+
+library(zoo)
+
+
+## 2. Analisis de los Datos.
+
+Los datos obtenidos se descargaron de la página web [Datos Abiertos](https://www.datosabiertos.gob.ec/dataset/), esta es una página anexada al INAHMI.
+
+Vamos a realizar un análisis previo de nuestros datos para visualizar el comportamiento en serie de tiempo. 
+
+### 2.1. Carga de los Datos de Temperatura y Precipitación.
+
+Ahora tenemos que hacer la carga de nuestros datos los cuales se encuentran en formato csv (texto delimitado por comas), es recomendado tener en este formato ya que R lo reconoce sin necesidad de agregar una libreria adicional.
+
+```{r}
+setwd("~/ING AMBIENTAL/INFORMATICA23-24/Proyecto")
+temp <- read.csv("Temp_Final.csv", sep = ",", dec = ".", header = T)
+```
+
+### 2.2. Creación de Serie de Tiempo para análisis de datos.
+
+Una serie de tiempo es una secuencia de datos u observaciones medidos en determinados momentos, en intervalos iguales y ordenados cronológicamente.
+
+El análisis de series de tiempo se refiere al proceso de analizar los datos disponibles para descubrir el patrón o la tendencia en los datos. Permite extraer y modelar las relaciones entre datos a lo largo del tiempo.
+
+```{r}
+temp_ts <- ts(temp$Temperatura, frequency = 12, start = c(1975,1))
+plot(temp_ts, main = "Serie de Tiempo de Temperatura 1975-2019", xlab = "Años", ylab = "Temperatura (°C)")
+```
+
+### 2.3. Componentes de la Serie de Tiempo.
+
+Utilizaremos el comando decompose() el cual desagrega la serie de tiempo en los componentes: tendencia, estacional, cíclico y aleatorio.
+
+```{r}
+temp_ts_descomp <- decompose(temp_ts) 
+```
+
+#### 2.3.1. Tendencia
+
+Es el patrón subyacente en los datos a lo largo del tiempo. No es necesariamente lineal.
+
+```{r}
+plot(temp_ts_descomp$trend, main = "Tendencia de Temperatura", col = "blue", ylab = "Temperatura (°C)")
+
+
+```
+
+#### 2.3.2. Estacionalidad
+
+Cuando una serie esta influenciada por factores estacionales de periodo fijo como el día, mes, trimestre, año, etc.
+
+```{r}
+plot(temp_ts_descomp$seasonal, main = "Estacionalidad de Temperatura", col = "red", ylab = "Temperatura (°C)")
+```
+
+
+#### 2.3.3. Aleatoriedad
+
+Parte inexplicable de los datos medidos.
+
+```{r}
+plot(temp_ts_descomp$random, main = "Irregularidad de Temperatura", col = "green", ylab = "Temperatura (°C)")
+```
+
+
+## 3. Creación de variables previo al modelamiento.
+
+En este apartado del código de R, creamos las variables de las fechas en las que se tomaron los datos según el INAHMI como podemos oberservar en nuestro código la primera fecha que se tomaron datos de temperatura están en "date_inicial" y la última fecha que se reportaron datos es "date_final".
+
+Ademas podemos notar que tenemos dos variables adicionales "fecha_final" la cual nos indica el mes siguiente a la última toma de datos reportados por el INAHMI y "fecha_pred" es la fecha de predicción que fijamos para un año.
+
+```{r}
+
+fecha_final <- as.Date("2019-07-01")
+
+fecha_pred <- as.Date("2020-07-01")
+
+date_inicial <- as.Date("1975-01-01")
+
+date_final <- as.Date("2019-06-01")
+
+Fecha <- as.Date(seq(from = date_inicial, to = date_final, by="month"))
+
+```
+
+
+## 4. Preparación de Datos para el modelamiento.
+
+### 4.1. Conversión de Datos a un data frame. 
+
+Los dataframes son una clase de objetos especial en R. Normalmente, cuando se realiza un estudio estadístico sobre los sujetos u objetos de una muestra, la información se organiza precisamente en un dataframe: una hoja de datos, en los que cada fila corresponde a un sujeto y cada columna a una variable. La estructura de un data.frame es muy similar a la de una matriz. La diferencia es que una matriz sólo admite valores numéricos, mientras que en un dataframe podemos incluir también datos alfanuméricos.
+
+```{r}
+temp <- as.data.frame(temp)
+head(temp, n = 60)
+```
+
+Posterior a eso empleamos el comando cbind() para combinar las dos columnas en un nuevo marco de datos. Combinamos la columna de temperaturas con una secuencia de fechas para formar un nuevo marco de datos.  
+
+```{r}
+temp <- as.data.frame(cbind(temp$Temperatura, Fecha))
+```
+
+Renombramos las columnas del marco de datos a ‘Temperatura’ y ‘Fecha’. 
+
+```{r}
+names(temp) <- c("Temperatura", "Fecha")
+```
+
+Después convertimos la columna de ‘Fecha’ a objetos de fecha en R empleando el comando as.Date(). Esto nos asegura que los datos de esta columna sean tratados como fechas.  
+
+```{r}
+temp$Fecha <- as.Date(temp$Fecha)
+```
+
+En resumen, hasta esta parte, el código toma un objeto de datos llamado ‘temp’, lo convierte en un marco de datos que solicita R, combina la columna de temperatura con una secuencia de fechas, renombramos las columnas y aseguramos que la columna de fechas este en el formato adecuados para su manipulación como fechas.   
+
+### 4.2. Creación del Data Frame para la muestra de los resultados según el modelo.
+
+Creamos un nuevo data frame para los datos que vamos a predecir. Con este paso se crea una secuencia de fechas predichas desde la ‘fecha_final’ hasta ‘fecha_pred’ en intervalos mensuales.  
+
+```{r}
+fecha_predic <- as.Date(seq(from = fecha_final, to = (fecha_pred), by = "month"))
+```
+
+Inicializamos un vector ‘Temperatura’ con los valores ‘NA’ y combinamos este vector con el vector de fechas predichas para crear un nuevo marco de datos denominado ‘fecha_predic’. Y también convertimos la columna ‘fecha_predic’ a un formato fecha y renombramos las columnas a ‘Temperatura’ y ‘Fecha’.  
+
+```{r}
+Temperatura <- as.numeric(NA)
+fecha_predic <- as.data.frame(cbind(Temperatura, fecha_predic))
+fecha_predic$fecha_predic <- as.Date(fecha_predic$fecha_predic)
+names(fecha_predic) <- c("Temperatura", "Fecha")
+```
+
+Combinamos los datos originales ‘temp’ con las fechas predichas ‘fecha_predic’ empleando el comando rbind(), el cual añade las filas al marco de datos ‘temp’.
+```{r}
+temp <- rbind(temp, fecha_predic)
+```
+
+Duplicamos la columna fechas para no perder los datos en el proceso de modelamiento y también separamos esta columna en ‘Año’, ‘Mes’, ‘Dia’.  
+
+```{r}
+temp$Fecha_dup <- temp$Fecha
+
+temp <- temp %>% separate(Fecha, c("Año", "Mes", "Dia"))
+```
+
+En el siguiente código convertimos cada una de las columnas ‘Año’, ‘Mes’, ‘Dia’ en carácter numérico. 
+
+```{r}
+temp$Año <- as.numeric(temp$Año)
+temp$Mes <- as.numeric(temp$Mes)
+temp$Dia <- as.numeric(temp$Dia)
+```
+
+## 5. Modelamiento
+
+### 5.1. Creación del conjunto de datos de entrenamiento y testeo.
+
+Establecemos la semilla (‘seed’) para que los resultados sean reproducibles en el futuro. Esto quiere decir que, si se ejecuta el código varias veces, se obtendrá los mismos resultados en cada ejecución, siempre y cuando se use la misma semilla.  
+
+Empleamos la función ‘createDataPartition’ del paquete ‘caret’ para crear un índice que indica que observaciones se incluirá en el conjunto de entrenamiento. Se filtran las observaciones y se elimina las filas con los valores faltantes en la columna ‘Temperatura’
+
+```{r}
+set.seed(1996)
+train <- createDataPartition(na.omit(subset(temp, temp$Fecha_dup < fecha_final))$Temperatura
+                             , p = 0.7, list = F) 
+
+
+```
+
+El valor ‘p=0.7’ nos indica que se van a emplear el 70% de los datos como conjunto de entrenamiento. También especificamos que queremos un vector de índice en lugar de una lista con el subcomando ‘list = FALSE’.  
+
+Empleamos el índice ‘train’ para seleccionar las observaciones correspondiste al conjunto de prueba utilizado la notación del subconjunto (‘temp[-train,]’). Combinamos estas observaciones con las que tienen ‘Fecha_dup’ mayor o igual a ‘fecha_final’ empleando ‘rbind’.
+
+```{r}
+test <- rbind(temp[-train,] , subset(temp, temp$Fecha_dup >= fecha_final))
+
+```
+
+En conclusión, en esta parte se crea un conjunto de entrenamiento y test. El conjunto de entrenamiento incluye datos hasta la fecha final, mientras que el conjunto de prueba incluye datos desde la fecha final hacia adelante. Cabe recalcar que en el conjunto de entrenamiento se selecciona el 70% de las observaciones.  
+
+### 5.2. Ejecución del algoritmo Random Forest.
+
+Este algoritmo construye múltiples arboles de clasificación aleatorios dependiendo de los datos con los que se está trabajando. En los pasos anteriores se prepararon todos los conjuntos de datos adecuadamente para que se pueda realizar los procesos correspondientes. Además de definió el número de árboles que se van han construir a través del argumento “ntree” 
+
+```{r}
+mod_rf <- randomForest(Temperatura ~ Fecha_dup, data = temp[train,], 
+                       type = "regression", ntree = 500)
+```
+
+Creamos las diferentes variables donde se van a almacenar los resultados de los procesos dependiendo de los índices que se establecieron como parámetros del modelamiento, con lo que tenemos una variable de resultado para la predicción y otra donde se almacenaran la combinación de los datos resultantes de la predicción.  
+
+```{r}
+pred_rf <- predict(mod_rf, test)
+
+datos_rf <- cbind(pred_rf, test)
+
+```
+
+### 5.3. Errores para la comprobación del modelo.
+
+Luego de esto vamos a determinar el porcentaje de error que se obtiene en la modelación realizada con lo cual podemos establecer si está dentro del rango aceptable. Esto nos garantiza que los datos que se han obtenido sean tratados como datos confiables para determinar predicciones futuras aplicando esta metodología y basado en el análisis de que se ha venido realizando en la toma y tratamiento de datos. 
+
+```{r}
+error_abs_rf <-RMSE(datos_rf$Temperatura, datos_rf$pred_rf, na.rm = T)
+
+error_por_rf <- error_abs_rf / datos_rf[datos_rf$Fecha_dup == max(na.omit(datos_rf)$Fecha_dup), ]$Temperatura
+error_por_rf*100
+
+MAE(datos_rf$Temperatura, datos_rf$pred_rf, na.rm = T)
+```
+
+## 6. Grafico del modelo resultante.
+
+Finalmente se va a dibujar el modelo que se obtuvo como resultado del proceso realizado, en el cual se incluyen el comportamiento real líneas en negro y el modelo calculado líneas en rojo, así como el título de la estación que hemos tomado como referencia para la ejecución del modelamiento. 
+
+```{r}
+ggplot() + geom_line(data = datos_rf, aes(x = Fecha_dup, y = Temperatura), color = "black") +
+  geom_line(data = datos_rf, aes(x = Fecha_dup, y = pred_rf), color = "red") + 
+  ggtitle("Modelo de Predicción para Temperatura Estacion Iñaquito ")
+```
+
+Ademas adjuntamos la tabla de los resultados para nuestro modelo y los datos originales.
+
+```{r}
+names(datos_rf) <- c("Temperatura Modelo", "Temperatura", "Año", "Mes", "Día", "Fecha")
+head(datos_rf, n = 60)
+```
+
+
+# PRECIPITACIÓN
+
+## 1. Analisis de los Datos.
+
+Los datos obtenidos se descargaron de la página web [Datos Abiertos](https://www.datosabiertos.gob.ec/dataset/), esta es una página anexada al INAHMI.
+
+Vamos a realizar un análisis previo de nuestros datos para visualizar el comportamiento en serie de tiempo. 
+
+### 1.1. Carga de los Datos de Precipitación.
+
+Ahora tenemos que hacer la carga de nuestros datos los cuales se encuentran en formato csv (texto delimitado por comas), es recomendado tener en este formato ya que R lo reconoce sin necesidad de agregar una libreria adicional.
+
+```{r}
+setwd("~/ING AMBIENTAL/INFORMATICA23-24/Proyecto")
+preci <- read.csv("Preci_Final.csv", sep = ",", dec = ".", header = T)
+```
+
+### 1.2. Creación de Serie de Tiempo para análisis de datos.
+
+Una serie de tiempo es una secuencia de datos u observaciones medidos en determinados momentos, en intervalos iguales y ordenados cronológicamente.
+
+El análisis de series de tiempo se refiere al proceso de analizar los datos disponibles para descubrir el patrón o la tendencia en los datos. Permite extraer y modelar las relaciones entre datos a lo largo del tiempo.
+
+```{r}
+preci_ts <- ts(preci$Parque.Bicentenario, frequency = 12, start = c(1975,1))
+plot(preci_ts, main = "Serie de Tiempo de Precipitación 1975-2019", xlab = "Años", ylab = "Precipitación (mm)")
+```
+
+### 1.3. Componentes de la Serie de Tiempo.
+
+Utilizaremos el comando decompose() el cual desagrega la serie de tiempo en los componentes: tendencia, estacional, cíclico y aleatorio.
+
+```{r}
+preci_ts_descomp <- decompose(preci_ts) 
+```
+
+#### 1.3.1. Tendencia
+
+Es el patrón subyacente en los datos a lo largo del tiempo. No es necesariamente lineal.
+
+```{r}
+plot(preci_ts_descomp$trend, main = "Tendencia Precipitación", col = "blue", ylab = "Precipitación (mm)")
+```
+
+#### 1.3.2. Estacionalidad
+
+Cuando una serie esta influenciada por factores estacionales de periodo fijo como el día, mes, trimestre, año, etc.
+
+```{r}
+plot(preci_ts_descomp$seasonal, main = "Estacionalidad Precipitación", col = "red", ylab = "Precipitación (mm)")
+```
+
+
+#### 1.3.3. Aleatoriedad
+
+Parte inexplicable de los datos medidos.
+
+```{r}
+plot(preci_ts_descomp$random, main = "Irregularidad Precipitación", col = "green", ylab = "Precipitación (mm)")
+```
+
+## 2. Preparación de Datos para el modelamiento.
+
+### 2.1. Conversión de Datos a un data frame. 
+
+Los dataframes son una clase de objetos especial en R. Normalmente, cuando se realiza un estudio estadístico sobre los sujetos u objetos de una muestra, la información se organiza precisamente en un dataframe: una hoja de datos, en los que cada fila corresponde a un sujeto y cada columna a una variable. La estructura de un data.frame es muy similar a la de una matriz. La diferencia es que una matriz solo admite valores numéricos, mientras que en un dataframe podemos incluir también datos alfanuméricos.
+
+```{r}
+preci <- as.data.frame(preci)
+head(preci, n = 60)
+```
+
+Renombramos las columnas del marco de datos a ‘Fecha’ y ‘Precipitación’. 
+
+```{r}
+names(preci) <- c("Fecha", "Precipitacion")
+```
+
+Posterior a eso empleamos el comando cbind() para combinar las dos columnas en un nuevo marco de datos. Combinamos la columna de temperaturas con una secuencia de fechas para formar un nuevo marco de datos.  
+
+```{r}
+preci <- as.data.frame(cbind(Fecha, preci$Precipitacion))
+```
+
+
+Después convertimos la columna de ‘Fecha’ a objetos de fecha en R empleando el comando as.Date(). Esto nos asegura que los datos de esta columna sean tratados como fechas.  
+
+```{r}
+preci$Fecha <- as.Date(preci$Fecha)
+names(preci) <- c("Fecha", "Precipitacion")
+```
+
+En resumen, hasta esta parte, el código toma un objeto de datos llamado ‘preci’, lo convierte en un marco de datos que solicita R, combina la columna de precipitación con una secuencia de fechas, renombramos las columnas y aseguramos que la columna de fechas este en el formato adecuados para su manipulación como fechas.   
+
+### 2.2. Creación del Data Frame para la muestra de los resultados según el modelo.
+
+Creamos un nuevo data frame para los datos que vamos a predecir. Con este paso se crea una secuencia de fechas predichas desde la ‘fecha_final’ hasta ‘fecha_pred’ en intervalos mensuales.  
+
+```{r}
+fecha_predic_preci <- as.Date(seq(from = fecha_final, to = (fecha_pred), by = "month"))
+```
+
+Inicializamos un vector ‘Precipitación’ con los valores ‘NA’ y combinamos este vector con el vector de fechas predichas para crear un nuevo marco de datos denominado ‘fecha_predic_preci’. Y también convertimos la columna ‘fecha_predic_preci’ a un formato fecha y renombramos las columnas a ‘Fecha’ y ‘Precipitación’.  
+
+```{r}
+Precipitacion <- as.numeric(NA)
+fecha_predic_preci <- as.data.frame(cbind(fecha_predic_preci, Precipitacion))
+fecha_predic_preci$fecha_predic_preci <- as.Date(fecha_predic_preci$fecha_predic_preci)
+names(fecha_predic_preci) <- c("Fecha", "Precipitacion")
+```
+
+Combinamos los datos originales ‘preci’ con las fechas predichas ‘fecha_predic_preci’ empleando el comando rbind(), el cual añade las filas al marco de datos ‘temp’.
+```{r}
+preci <- rbind(preci, fecha_predic_preci)
+```
+
+Duplicamos la columna fechas para no perder los datos en el proceso de modelamiento y también separamos esta columna en ‘Año’, ‘Mes’, ‘Dia’.  
+
+```{r}
+preci$Fecha_dup_preci <- preci$Fecha
+
+preci <- preci %>% separate(Fecha, c("Año", "Mes", "Dia"))
+```
+
+En el siguiente código convertimos cada una de las columnas ‘Año’, ‘Mes’, ‘Dia’ en carácter numérico. 
+
+```{r}
+preci$Año <- as.numeric(preci$Año)
+preci$Mes <- as.numeric(preci$Mes)
+preci$Dia <- as.numeric(preci$Dia)
+
+```
+
+## 3. Modelamiento
+
+### 3.1. Creación del conjunto de datos de entrenamiento y testeo.
+
+Establecemos la semilla (‘seed’) para que los resultados sean reproducibles en el futuro. Esto quiere decir que, si se ejecuta el código varias veces, se obtendrá los mismos resultados en cada ejecución, siempre y cuando se use la misma semilla.  
+
+Empleamos la función ‘createDataPartition’ del paquete ‘caret’ para crear un índice que indica que observaciones se incluirá en el conjunto de entrenamiento. Se filtran las observaciones y se elimina las filas con los valores faltantes en la columna ‘Temperatura’
+
+```{r}
+set.seed(1997)
+train_preci <- createDataPartition(na.omit(subset(preci, preci$Fecha_dup_preci < fecha_final))$Precipitacion
+                             , p = 0.7, list = F) 
+```
+
+El valor ‘p=0.7’ nos indica que se van a emplear el 70% de los datos como conjunto de entrenamiento. También especificamos que queremos un vector de índice en lugar de una lista con el subcomando ‘list = FALSE’.  
+
+Empleamos el índice ‘train_preci’ para seleccionar las observaciones correspondiste al conjunto de prueba utilizado la notación del subconjunto (‘preci[-train_preci,]’). Combinamos estas observaciones con las que tienen ‘Fecha_dup’ mayor o igual a ‘fecha_final’ empleando ‘rbind’.
+
+```{r}
+test_preci <- rbind(preci[-train_preci,] , subset(preci, preci$Fecha_dup_preci >= fecha_final))
+
+```
+
+En conclusión, en esta parte se crea un conjunto de entrenamiento y test. El conjunto de entrenamiento incluye datos hasta la fecha final, mientras que el conjunto de prueba incluye datos desde la fecha final hacia adelante. Cabe recalcar que en el conjunto de entrenamiento se selecciona el 70% de las observaciones.  
+
+### 3.2. Ejecución del algoritmo Random Forest.
+
+Este algoritmo construye múltiples arboles de clasificación aleatorios dependiendo de los datos con los que se está trabajando. En los pasos anteriores se prepararon todos los conjuntos de datos adecuadamente para que se pueda realizar los procesos correspondientes. Además de definió el número de árboles que se van han construir a través del argumento “ntree” 
+
+```{r}
+mod_rf_preci <- randomForest(Precipitacion ~ Fecha_dup_preci, data = preci[train_preci,], 
+                       type = "regression", ntree = 500)
+```
+
+Creamos las diferentes variables donde se van a almacenar los resultados de los procesos dependiendo de los índices que se establecieron como parámetros del modelamiento, con lo que tenemos una variable de resultado para la predicción y otra donde se almacenaran la combinación de los datos resultantes de la predicción.  
+
+```{r}
+pred_rf_preci <- predict(mod_rf_preci, test_preci)
+
+datos_rf_preci <- cbind(pred_rf_preci, test_preci)
+
+```
+
+### 3.3. Errores para la comprobacion del modelo.
+
+Luego de esto vamos a determinar el porcentaje de error que se obtiene en la modelación realizada con lo cual podemos establecer si está dentro del rango aceptable. Esto nos garantiza que los datos que se han obtenido sean tratados como datos confiables para determinar predicciones futuras aplicando esta metodología y basado en el análisis de que se ha venido realizando en la toma y tratamiento de datos. 
+
+```{r}
+error_abs_rf_preci <-RMSE(datos_rf_preci$Precipitacion, datos_rf_preci$pred_rf_preci, na.rm = T)
+
+error_por_rf_preci <- error_abs_rf / datos_rf_preci[datos_rf_preci$Fecha_dup_preci == max(na.omit(datos_rf_preci)$Fecha_dup_preci), ]$Precipitacion
+error_por_rf_preci*100
+
+MAE(datos_rf_preci$Precipitacion, datos_rf_preci$pred_rf_preci, na.rm = T)
+```
+
+## 4. Grafico del modelo resultante
+
+Finalmente se va a dibujar el modelo que se obtuvo como resultado del proceso realizado, en el cual se incluyen el comportamiento real líneas en negro y el modelo calculado líneas en ojo, así como el título de la estación que hemos tomado como referencia para la ejecución del modelamiento. 
+
+```{r}
+ggplot() + geom_line(data = datos_rf_preci, aes(x = Fecha_dup_preci, y = Precipitacion), color = "black") +
+  geom_line(data = datos_rf_preci, aes(x = Fecha_dup_preci, y = pred_rf_preci), color = "red") + 
+  ggtitle("Modelo de Predicción para Precipitación Estacion Iñaquito ")
+```
+
+Ademas adjuntamos la tabla de los resultados para nuestro modelo y los datos originales.
+
+```{r}
+names(datos_rf_preci) <- c("Precipitación Modelo", "Año", "Mes", "Día", "Temperatura", "Fecha")
+head(datos_rf_preci, n = 60)
+```
