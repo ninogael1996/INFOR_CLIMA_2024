@@ -1,6 +1,6 @@
 ---
 title: "UNIVERSIDAD CENTRAL DEL ECUADOR Carrera de Ingeniería Ambiental" 
-subtitle: "Modelo de Predicción Estadístico para Temperatura y Precipitación con el algoritmo Random Forest en lenguaje R"
+subtitle: "Análisis de la Variabilidad Climática en la Cuenca hidrográfica del Río Rumipamba - Modelo de Predicción Estadístico para Temperatura y Precipitación con el algoritmo Random Forest en lenguaje R"
 author: "Naim Aguilar - Jhonatan Cruz - Javier Quishpe -  Susana Arciniegas Ortega"
 date: "2024/02/02"
 output:
@@ -10,6 +10,8 @@ output:
     code_download: TRUE
     theme: united
 ---
+![](UCE.jpg){withd=50%}
+![](FIGEMPA.png){withd=70%}
 ```{r setup, include=FALSE}
 
 library(lubridate)
@@ -23,9 +25,20 @@ library(zoo)
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
-# TEMPERATURA
+# ANÁLISIS VARIABILIDAD CLIMÁTICA
 
-## 1. Instalación y carga de librerías.
+## Introducción
+La variabilidad climática en una cuenca hidrográfica es un tema de gran importancia debido a su impacto en la gestión del agua, la agricultura, la biodiversidad y la seguridad alimentaria de las poblaciones que dependen de los recursos hídricos de esa región. Las cuencas hidrográficas son áreas geográficas naturales donde todas las aguas superficiales y subterráneas fluyen hacia un mismo punto de salida, ya sea un río principal, un lago o un océano. Esta característica hace que sean sistemas sensibles a los cambios climáticos. 
+
+La variabilidad climática se refiere a las fluctuaciones naturales en los patrones del clima a lo largo del tiempo y el espacio. Estas fluctuaciones pueden manifestarse en cambios en la temperatura, precipitación, humedad, vientos y otros parámetros climáticos. En una cuenca hidrográfica, la variabilidad climática puede influir en la cantidad, distribución y temporalidad de las precipitaciones, así como en la evaporación y la disponibilidad de agua superficial y subterránea. 
+
+Los cambios en el clima pueden ser causados por factores naturales, como variaciones en la actividad solar, oscilaciones climáticas naturales como El Niño y La Niña, y fenómenos atmosféricos como el cambio en la circulación atmosférica. Sin embargo, en las últimas décadas, la actividad humana, especialmente la emisión de gases de efecto invernadero, ha contribuido significativamente al calentamiento global y al cambio climático, exacerbando la variabilidad climática y generando impactos más pronunciados en las cuencas hidrográficas.
+
+# MODELO ESTADÍSTICO "RANDOM FOREST" EN RSTUDIO
+
+## TEMPERATURA
+
+### 1. Instalación y carga de librerías.
 
 El primer paso es la instalación de las librerías utilizando el comando install.packages() esto es fundamental para el desarrollo de nuestro código. Ya que se necesitan algunos paquetes como caret, randomforest, lubridate, ggplot2. Sin estas librerías el codigo no va a correr. 
 
@@ -62,13 +75,13 @@ library(randomForest)
 library(zoo)
 
 
-## 2. Analisis de los Datos.
+### 2. Analisis de los Datos.
 
 Los datos obtenidos se descargaron de la página web [Datos Abiertos](https://www.datosabiertos.gob.ec/dataset/), esta es una página anexada al INAHMI.
 
 Vamos a realizar un análisis previo de nuestros datos para visualizar el comportamiento en serie de tiempo. 
 
-### 2.1. Carga de los Datos de Temperatura y Precipitación.
+#### 2.1. Carga de los Datos de Temperatura y Precipitación.
 
 Ahora tenemos que hacer la carga de nuestros datos los cuales se encuentran en formato csv (texto delimitado por comas), es recomendado tener en este formato ya que R lo reconoce sin necesidad de agregar una libreria adicional.
 
@@ -77,7 +90,7 @@ setwd("~/ING AMBIENTAL/INFORMATICA23-24/Proyecto")
 temp <- read.csv("Temp_Final.csv", sep = ",", dec = ".", header = T)
 ```
 
-### 2.2. Creación de Serie de Tiempo para análisis de datos.
+#### 2.2. Creación de Serie de Tiempo para análisis de datos.
 
 Una serie de tiempo es una secuencia de datos u observaciones medidos en determinados momentos, en intervalos iguales y ordenados cronológicamente.
 
@@ -88,7 +101,7 @@ temp_ts <- ts(temp$Temperatura, frequency = 12, start = c(1975,1))
 plot(temp_ts, main = "Serie de Tiempo de Temperatura 1975-2019", xlab = "Años", ylab = "Temperatura (°C)")
 ```
 
-### 2.3. Componentes de la Serie de Tiempo.
+#### 2.3. Componentes de la Serie de Tiempo.
 
 Utilizaremos el comando decompose() el cual desagrega la serie de tiempo en los componentes: tendencia, estacional, cíclico y aleatorio.
 
@@ -96,7 +109,7 @@ Utilizaremos el comando decompose() el cual desagrega la serie de tiempo en los 
 temp_ts_descomp <- decompose(temp_ts) 
 ```
 
-#### 2.3.1. Tendencia
+##### 2.3.1. Tendencia
 
 Es el patrón subyacente en los datos a lo largo del tiempo. No es necesariamente lineal.
 
@@ -106,7 +119,7 @@ plot(temp_ts_descomp$trend, main = "Tendencia de Temperatura", col = "blue", yla
 
 ```
 
-#### 2.3.2. Estacionalidad
+##### 2.3.2. Estacionalidad
 
 Cuando una serie esta influenciada por factores estacionales de periodo fijo como el día, mes, trimestre, año, etc.
 
@@ -115,7 +128,7 @@ plot(temp_ts_descomp$seasonal, main = "Estacionalidad de Temperatura", col = "re
 ```
 
 
-#### 2.3.3. Aleatoriedad
+##### 2.3.3. Aleatoriedad
 
 Parte inexplicable de los datos medidos.
 
@@ -124,7 +137,7 @@ plot(temp_ts_descomp$random, main = "Irregularidad de Temperatura", col = "green
 ```
 
 
-## 3. Creación de variables previo al modelamiento.
+### 3. Creación de variables previo al modelamiento.
 
 En este apartado del código de R, creamos las variables de las fechas en las que se tomaron los datos según el INAHMI como podemos oberservar en nuestro código la primera fecha que se tomaron datos de temperatura están en "date_inicial" y la última fecha que se reportaron datos es "date_final".
 
@@ -145,9 +158,9 @@ Fecha <- as.Date(seq(from = date_inicial, to = date_final, by="month"))
 ```
 
 
-## 4. Preparación de Datos para el modelamiento.
+### 4. Preparación de Datos para el modelamiento.
 
-### 4.1. Conversión de Datos a un data frame. 
+#### 4.1. Conversión de Datos a un data frame. 
 
 Los dataframes son una clase de objetos especial en R. Normalmente, cuando se realiza un estudio estadístico sobre los sujetos u objetos de una muestra, la información se organiza precisamente en un dataframe: una hoja de datos, en los que cada fila corresponde a un sujeto y cada columna a una variable. La estructura de un data.frame es muy similar a la de una matriz. La diferencia es que una matriz sólo admite valores numéricos, mientras que en un dataframe podemos incluir también datos alfanuméricos.
 
@@ -176,7 +189,7 @@ temp$Fecha <- as.Date(temp$Fecha)
 
 En resumen, hasta esta parte, el código toma un objeto de datos llamado ‘temp’, lo convierte en un marco de datos que solicita R, combina la columna de temperatura con una secuencia de fechas, renombramos las columnas y aseguramos que la columna de fechas este en el formato adecuados para su manipulación como fechas.   
 
-### 4.2. Creación del Data Frame para la muestra de los resultados según el modelo.
+#### 4.2. Creación del Data Frame para la muestra de los resultados según el modelo.
 
 Creamos un nuevo data frame para los datos que vamos a predecir. Con este paso se crea una secuencia de fechas predichas desde la ‘fecha_final’ hasta ‘fecha_pred’ en intervalos mensuales.  
 
@@ -214,9 +227,9 @@ temp$Mes <- as.numeric(temp$Mes)
 temp$Dia <- as.numeric(temp$Dia)
 ```
 
-## 5. Modelamiento
+### 5. Modelamiento
 
-### 5.1. Creación del conjunto de datos de entrenamiento y testeo.
+#### 5.1. Creación del conjunto de datos de entrenamiento y testeo.
 
 Establecemos la semilla (‘seed’) para que los resultados sean reproducibles en el futuro. Esto quiere decir que, si se ejecuta el código varias veces, se obtendrá los mismos resultados en cada ejecución, siempre y cuando se use la misma semilla.  
 
@@ -241,7 +254,7 @@ test <- rbind(temp[-train,] , subset(temp, temp$Fecha_dup >= fecha_final))
 
 En conclusión, en esta parte se crea un conjunto de entrenamiento y test. El conjunto de entrenamiento incluye datos hasta la fecha final, mientras que el conjunto de prueba incluye datos desde la fecha final hacia adelante. Cabe recalcar que en el conjunto de entrenamiento se selecciona el 70% de las observaciones.  
 
-### 5.2. Ejecución del algoritmo Random Forest.
+#### 5.2. Ejecución del algoritmo Random Forest.
 
 Este algoritmo construye múltiples arboles de clasificación aleatorios dependiendo de los datos con los que se está trabajando. En los pasos anteriores se prepararon todos los conjuntos de datos adecuadamente para que se pueda realizar los procesos correspondientes. Además de definió el número de árboles que se van han construir a través del argumento “ntree” 
 
@@ -259,7 +272,7 @@ datos_rf <- cbind(pred_rf, test)
 
 ```
 
-### 5.3. Errores para la comprobación del modelo.
+#### 5.3. Errores para la comprobación del modelo.
 
 Luego de esto vamos a determinar el porcentaje de error que se obtiene en la modelación realizada con lo cual podemos establecer si está dentro del rango aceptable. Esto nos garantiza que los datos que se han obtenido sean tratados como datos confiables para determinar predicciones futuras aplicando esta metodología y basado en el análisis de que se ha venido realizando en la toma y tratamiento de datos. 
 
@@ -272,7 +285,7 @@ error_por_rf*100
 MAE(datos_rf$Temperatura, datos_rf$pred_rf, na.rm = T)
 ```
 
-## 6. Grafico del modelo resultante.
+### 6. Grafico del modelo resultante.
 
 Finalmente se va a dibujar el modelo que se obtuvo como resultado del proceso realizado, en el cual se incluyen el comportamiento real líneas en negro y el modelo calculado líneas en rojo, así como el título de la estación que hemos tomado como referencia para la ejecución del modelamiento. 
 
@@ -290,15 +303,15 @@ head(datos_rf, n = 60)
 ```
 
 
-# PRECIPITACIÓN
+## PRECIPITACIÓN
 
-## 1. Analisis de los Datos.
+### 1. Analisis de los Datos.
 
 Los datos obtenidos se descargaron de la página web [Datos Abiertos](https://www.datosabiertos.gob.ec/dataset/), esta es una página anexada al INAHMI.
 
 Vamos a realizar un análisis previo de nuestros datos para visualizar el comportamiento en serie de tiempo. 
 
-### 1.1. Carga de los Datos de Precipitación.
+#### 1.1. Carga de los Datos de Precipitación.
 
 Ahora tenemos que hacer la carga de nuestros datos los cuales se encuentran en formato csv (texto delimitado por comas), es recomendado tener en este formato ya que R lo reconoce sin necesidad de agregar una libreria adicional.
 
@@ -307,7 +320,7 @@ setwd("~/ING AMBIENTAL/INFORMATICA23-24/Proyecto")
 preci <- read.csv("Preci_Final.csv", sep = ",", dec = ".", header = T)
 ```
 
-### 1.2. Creación de Serie de Tiempo para análisis de datos.
+#### 1.2. Creación de Serie de Tiempo para análisis de datos.
 
 Una serie de tiempo es una secuencia de datos u observaciones medidos en determinados momentos, en intervalos iguales y ordenados cronológicamente.
 
@@ -318,7 +331,7 @@ preci_ts <- ts(preci$Parque.Bicentenario, frequency = 12, start = c(1975,1))
 plot(preci_ts, main = "Serie de Tiempo de Precipitación 1975-2019", xlab = "Años", ylab = "Precipitación (mm)")
 ```
 
-### 1.3. Componentes de la Serie de Tiempo.
+#### 1.3. Componentes de la Serie de Tiempo.
 
 Utilizaremos el comando decompose() el cual desagrega la serie de tiempo en los componentes: tendencia, estacional, cíclico y aleatorio.
 
@@ -326,7 +339,7 @@ Utilizaremos el comando decompose() el cual desagrega la serie de tiempo en los 
 preci_ts_descomp <- decompose(preci_ts) 
 ```
 
-#### 1.3.1. Tendencia
+##### 1.3.1. Tendencia
 
 Es el patrón subyacente en los datos a lo largo del tiempo. No es necesariamente lineal.
 
@@ -334,7 +347,7 @@ Es el patrón subyacente en los datos a lo largo del tiempo. No es necesariament
 plot(preci_ts_descomp$trend, main = "Tendencia Precipitación", col = "blue", ylab = "Precipitación (mm)")
 ```
 
-#### 1.3.2. Estacionalidad
+##### 1.3.2. Estacionalidad
 
 Cuando una serie esta influenciada por factores estacionales de periodo fijo como el día, mes, trimestre, año, etc.
 
@@ -343,7 +356,7 @@ plot(preci_ts_descomp$seasonal, main = "Estacionalidad Precipitación", col = "r
 ```
 
 
-#### 1.3.3. Aleatoriedad
+##### 1.3.3. Aleatoriedad
 
 Parte inexplicable de los datos medidos.
 
@@ -351,9 +364,9 @@ Parte inexplicable de los datos medidos.
 plot(preci_ts_descomp$random, main = "Irregularidad Precipitación", col = "green", ylab = "Precipitación (mm)")
 ```
 
-## 2. Preparación de Datos para el modelamiento.
+### 2. Preparación de Datos para el modelamiento.
 
-### 2.1. Conversión de Datos a un data frame. 
+#### 2.1. Conversión de Datos a un data frame. 
 
 Los dataframes son una clase de objetos especial en R. Normalmente, cuando se realiza un estudio estadístico sobre los sujetos u objetos de una muestra, la información se organiza precisamente en un dataframe: una hoja de datos, en los que cada fila corresponde a un sujeto y cada columna a una variable. La estructura de un data.frame es muy similar a la de una matriz. La diferencia es que una matriz solo admite valores numéricos, mientras que en un dataframe podemos incluir también datos alfanuméricos.
 
@@ -384,7 +397,7 @@ names(preci) <- c("Fecha", "Precipitacion")
 
 En resumen, hasta esta parte, el código toma un objeto de datos llamado ‘preci’, lo convierte en un marco de datos que solicita R, combina la columna de precipitación con una secuencia de fechas, renombramos las columnas y aseguramos que la columna de fechas este en el formato adecuados para su manipulación como fechas.   
 
-### 2.2. Creación del Data Frame para la muestra de los resultados según el modelo.
+#### 2.2. Creación del Data Frame para la muestra de los resultados según el modelo.
 
 Creamos un nuevo data frame para los datos que vamos a predecir. Con este paso se crea una secuencia de fechas predichas desde la ‘fecha_final’ hasta ‘fecha_pred’ en intervalos mensuales.  
 
@@ -423,9 +436,9 @@ preci$Dia <- as.numeric(preci$Dia)
 
 ```
 
-## 3. Modelamiento
+### 3. Modelamiento
 
-### 3.1. Creación del conjunto de datos de entrenamiento y testeo.
+#### 3.1. Creación del conjunto de datos de entrenamiento y testeo.
 
 Establecemos la semilla (‘seed’) para que los resultados sean reproducibles en el futuro. Esto quiere decir que, si se ejecuta el código varias veces, se obtendrá los mismos resultados en cada ejecución, siempre y cuando se use la misma semilla.  
 
@@ -448,7 +461,7 @@ test_preci <- rbind(preci[-train_preci,] , subset(preci, preci$Fecha_dup_preci >
 
 En conclusión, en esta parte se crea un conjunto de entrenamiento y test. El conjunto de entrenamiento incluye datos hasta la fecha final, mientras que el conjunto de prueba incluye datos desde la fecha final hacia adelante. Cabe recalcar que en el conjunto de entrenamiento se selecciona el 70% de las observaciones.  
 
-### 3.2. Ejecución del algoritmo Random Forest.
+#### 3.2. Ejecución del algoritmo Random Forest.
 
 Este algoritmo construye múltiples arboles de clasificación aleatorios dependiendo de los datos con los que se está trabajando. En los pasos anteriores se prepararon todos los conjuntos de datos adecuadamente para que se pueda realizar los procesos correspondientes. Además de definió el número de árboles que se van han construir a través del argumento “ntree” 
 
@@ -466,7 +479,7 @@ datos_rf_preci <- cbind(pred_rf_preci, test_preci)
 
 ```
 
-### 3.3. Errores para la comprobacion del modelo.
+#### 3.3. Errores para la comprobacion del modelo.
 
 Luego de esto vamos a determinar el porcentaje de error que se obtiene en la modelación realizada con lo cual podemos establecer si está dentro del rango aceptable. Esto nos garantiza que los datos que se han obtenido sean tratados como datos confiables para determinar predicciones futuras aplicando esta metodología y basado en el análisis de que se ha venido realizando en la toma y tratamiento de datos. 
 
@@ -479,7 +492,7 @@ error_por_rf_preci*100
 MAE(datos_rf_preci$Precipitacion, datos_rf_preci$pred_rf_preci, na.rm = T)
 ```
 
-## 4. Grafico del modelo resultante
+### 4. Grafico del modelo resultante
 
 Finalmente se va a dibujar el modelo que se obtuvo como resultado del proceso realizado, en el cual se incluyen el comportamiento real líneas en negro y el modelo calculado líneas en ojo, así como el título de la estación que hemos tomado como referencia para la ejecución del modelamiento. 
 
@@ -495,3 +508,21 @@ Ademas adjuntamos la tabla de los resultados para nuestro modelo y los datos ori
 names(datos_rf_preci) <- c("Precipitación Modelo", "Año", "Mes", "Día", "Temperatura", "Fecha")
 head(datos_rf_preci, n = 60)
 ```
+
+# APLICACIÓN Y REPOSITORIO DE DATOS
+
+## Aplicación
+
+Aqui podemos digirirnos a nuestras aplicaciones desde cualquier ordenador.En este caso realizamos dos apps:
+
+*Temperatura* [APP](https://6yi64y-naim-aguilar.shinyapps.io/App_Infor_Clima/)
+
+*Precipitación* 
+
+## Repositorio de Datos
+
+Este es nuestro [Repositorio](https://github.com/ninogael1996/INFOR_CLIMA_2024), aqui pueden observar todos los datos que se utilizaron para el desarrollo de nuestro proyecto.
+Además compartimos el codigo fuente de la base de nuestra página subida a RPubs. 
+
+
+
