@@ -10,7 +10,7 @@ output:
     code_download: TRUE
     theme: united
 ---
-![](UCE.jpg){withd=50%}
+![](UCE.jpg){withd=60}
 ![](FIGEMPA.png){withd=70%}
 ```{r setup, include=FALSE}
 
@@ -33,6 +33,23 @@ La variabilidad climática en una cuenca hidrográfica es un tema de gran import
 La variabilidad climática se refiere a las fluctuaciones naturales en los patrones del clima a lo largo del tiempo y el espacio. Estas fluctuaciones pueden manifestarse en cambios en la temperatura, precipitación, humedad, vientos y otros parámetros climáticos. En una cuenca hidrográfica, la variabilidad climática puede influir en la cantidad, distribución y temporalidad de las precipitaciones, así como en la evaporación y la disponibilidad de agua superficial y subterránea. 
 
 Los cambios en el clima pueden ser causados por factores naturales, como variaciones en la actividad solar, oscilaciones climáticas naturales como El Niño y La Niña, y fenómenos atmosféricos como el cambio en la circulación atmosférica. Sin embargo, en las últimas décadas, la actividad humana, especialmente la emisión de gases de efecto invernadero, ha contribuido significativamente al calentamiento global y al cambio climático, exacerbando la variabilidad climática y generando impactos más pronunciados en las cuencas hidrográficas.
+
+## Informe Detallado
+
+Dar click en la palabra [INFORME](https://uceedu-my.sharepoint.com/:b:/g/personal/naaguilara_uce_edu_ec/EUtq5ozN8vNOq3RabWZ0c8EBYO_nuSGDcBwMobhNfMJA4A?e=0FMwvW) para poder obtener mas información del informe.
+
+## Análisis de Resultados
+
+A partir del año 1980 hasta el 2014 se han producido 10 eventos cálidos del Niño, empezando en abril/82 hasta junio/83, septiembre/86 hasta febrero/88, junio/91 hasta julio/92, octubre/94 hasta marzo/95, mayo/97 hasta mayo/98, junio/02 hasta febrero/03, julio/04 hasta abril/05, septiembre/06 hasta enero/07, jul abril/2010, noviembre/14 hasta diciembre/14, y siete eventos fríos de La Niña que ocurrieron en octubre/84 hasta junio/85, mayo/88 hasta mayo/89, agosto/95 hasta marzo/96, julio/98 hasta febrero/01, agosto/07 hasta junio/08, julio/10 hasta abril/11, agosto/11 hasta febrero/12. 
+
+![Figura N°1: Precipitación Periodo 1979-2019 Estación Parque Bicentenario ](Precipitacion_1979_2019.png){withd=100%}
+
+![Figura N°2: Temperatura Periodo 1979-2019 Estación Parque Bicentenario ](Temperatura_1979-2019.png){withd=100%}
+
+
+![Figura N°3: Índice Estandarizado de Sequía 1979-2019 Estación Parque Bicentenario ](IES Bicentenario.jpg){withd=150%}
+
+![Figura N°4: Índice Estandarizado de Sequía 1979-2019 Estación Canal 10TV ](IES Canal 10.jpg){withd=150%}
 
 # MODELO ESTADÍSTICO "RANDOM FOREST" EN RSTUDIO
 
@@ -517,7 +534,7 @@ Aqui podemos digirirnos a nuestras aplicaciones desde cualquier ordenador.En est
 
 *Temperatura* [APP](https://6yi64y-naim-aguilar.shinyapps.io/App_Infor_Clima/)
 
-*Precipitación* 
+*Precipitación* [app](https://6yi64y-naim-aguilar.shinyapps.io/app_preci/)
 
 ## Repositorio de Datos
 

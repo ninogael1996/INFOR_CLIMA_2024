@@ -1,0 +1,70 @@
+/*NOTA IMPORTANTE: PRIMERO Cargar los archivos shapes de la "cuenca Rumipamba" 
+  y las "6 estaciones" para poder verificar las ubicaciones de los puntos 
+  establecidos como geometrias en la zona de estudio.
+  LUEGO, cambiar el ID Table del usuario, ejemplo "ee-quishpekevin1c".
+*/
+
+var table = ee.FeatureCollection("projects/ee-quishpekevin1c/assets/Cuenca_Rumipamba"),
+    table4 = ee.FeatureCollection("projects/ee-quishpekevin1c/assets/Estaciones_Cuenca"),
+    
+    geometry2 = /* color: #0b4a8b */ee.Geometry.Point([-78.48714236161976, -0.14331734858687487]),
+    geometry9 = 
+    /* color: #999900 */
+    /* locked: true */
+    ee.Geometry.Point([-78.52463644638087, -0.16804094842387493]),
+    geometry12 = 
+    /* color: #ff9999 */
+    /* locked: true */
+    ee.Geometry.Point([-78.48547634783904, -0.16998894017464108]),
+    geometry15 = 
+    /* color: #ffff99 */
+    /* locked: true */
+    ee.Geometry.Point([-78.51880781800863, -0.17915768948151048]),
+    table2 = ee.FeatureCollection("projects/ee-quishpekevin1c/assets/6_estaciones");
+
+
+Map.addLayer(table2,visualization,'6 staciones'); //Estaciones de interes
+
+// *1 Temperatura - Resolucion 27830 m
+
+var dataset = ee.ImageCollection('ECMWF/ERA5/MONTHLY') // Producto 1
+           .select('mean_2m_air_temperature') // Param. 1
+            .filter(ee.Filter.date('1979-01-01', '2019-12-31')); //Fecha de inicio y fin
+            
+var visualization = {
+  //bands: ['mean_2m_air_temperature'],
+  min: 224,
+  max: 304,
+  palette: [
+    '000080', '0000d9', '4000ff', '8000ff', '0080ff', '00ffff',
+    '00ff80', '80ff00', 'daff00', 'ffff00', 'fff500', 'ffda00',
+    'ffb000', 'ffa400', 'ff4f00', 'ff2500', 'ff0a00', 'ff00ff',
+  ]
+};
+
+Map.centerObject(table,12);
+Map.addLayer(dataset, visualization, 'Temperatura Mensual Promedio');
+
+
+// *1 Precipitacion - Resolucion 27830 m
+
+var dataset = ee.ImageCollection('ECMWF/ERA5/MONTHLY') // Producto 1
+           .select('total_precipitation') // Para. 1
+            .filter(ee.Filter.date('1979-01-01', '2019-12-31')); //Fecha de inicio y fin
+            //.filterBounds(table) // Area de interes
+
+var visualization = {
+  //bands: ['total_precipitation'],
+  min: 0,
+  max: 0.4,
+  palette: [
+    '000080', '0000d9', '4000ff', '8000ff', '0080ff', '00ffff',
+    '00ff80', '80ff00', 'daff00', 'ffff00', 'fff500', 'ffda00',
+    'ffb000', 'ffa400', 'ff4f00', 'ff2500', 'ff0a00', 'ff00ff',
+  ]
+};
+
+Map.centerObject(table,12);
+Map.addLayer(dataset, visualization, 'Precipitacion Mensual');
+
+Map.addLayer(table,visualization,'AOI'); //Area de estudio
